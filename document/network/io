@@ -1,0 +1,89 @@
+# Java NIO 概述
+
+## 1、NIO三个核心
+
+- Channels
+- Buffers
+- Selectors
+
+### Channel 和 Buffer
+
+所有的IO在NIO中都从一个Channel开始，数据可以从Channel读到Buffer中，也可以从Buffer写到Channel中。
+
+<img src="C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20200427172209402.png" alt="image-20200427172209402" style="zoom:67%;" />
+
+### Selector
+
+Selector允许单线程处理多个 Channel。
+
+<img src="C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20200427173557697.png" alt="image-20200427173557697" style="zoom:67%;" />
+
+要使用Selector，的向Selector注册Channel，然后调用它的select()方法。这个方法会一直阻塞到某个注册的通道有事件就绪，这个方法返回，线程就去处理事件。
+
+
+
+## 2、Buffer
+
+NIO中的Buffer用于和NIO通道进行交互的，数据是从用到读取到缓冲区的，从缓冲区写入到通道的。、
+
+缓冲区的本质是一块内存，这个内存可以写入数据，也可以从中读取数据。这块内存包装成NIO 的Buffer对象 ，并提供一组方法来访问这块内存。
+
+### 2.1、Buffer基本用法
+
+- 将数据写入到Buffer当中
+- 调用flip()方法
+- 从Buffer当中读取数据
+- 调用clean()清空数据
+
+从buffer中写入数据，buffer会记录写了多少数据。要读取数据，就会调用flip()函数，从写模式切换到读模式，然后就读取刚刚写入的数据，读完数据之后，就清空之前写入的数据。
+
+```java
+/**
+ * 测试Buffer的案例
+ */
+public class TestBuffer {
+    public static void main(String[] args) throws IOException {
+        RandomAccessFile file = new RandomAccessFile("c:\\file.txt","rw");
+        FileChannel fileChannel = file.getChannel();  //获取文件的通道
+        ByteBuffer buffer = ByteBuffer.allocate(2014);
+        int read = fileChannel.read(buffer);
+        while(read!=-1){
+            buffer.flip();
+            while(buffer.hasRemaining()){
+                System.out.println((char)buffer.get());
+            }
+            buffer.clear();
+            read=fileChannel.read(buffer);
+        }
+        file.close();
+    }
+}
+```
+
+### 2.2、Buffer的核心属性
+
+- capacity
+- limit
+- position
+
+<img src="C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20200427185348333.png" alt="image-20200427185348333" style="zoom:67%;" />
+
+<img src="C:\Users\Administrator\AppData\Roaming\Typora\typora-user-images\image-20200427185521324.png" alt="image-20200427185521324" style="zoom:67%;" />
+
+#### 2.2.1、capacity
+
+capacity表示一块吗内存块的容量，内存块满了，清空了才能写入数据。
+
+#### 2.2.2、position
+
+写入数据的时候，position表示当前位置的数据。读取数据的时候，也就是从某个位置读取数据。
+
+写入模式-->读取模式的转换，position被重置为0；从buffer的position读取数据，position转移到下一个可读的位置。
+
+#### 2.2.3、limit
+
+写入模式，limit的位置就是capacity的位置；读取模式，limit的值被设置为position位置的值。
+
+### 3、Buffer的分配
+
+要获取一个Buffer对象，就要给它分配内存。
